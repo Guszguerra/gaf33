@@ -17,7 +17,7 @@ export interface PricingInput {
 }
 
 export const defaultInput: PricingInput = {
-  resinPricePerLiter: 150,
+  resinPricePerLiter: 200,
   resinMl: 80,
   supportWastePct: 15,
   printHours: 6,

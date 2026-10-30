@@ -2,15 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getResinMetrics } from "@/lib/resin-metrics.functions";
-import hero from "@/assets/hero.jpg";
-import raw from "@/assets/raw.jpg";
-import paint from "@/assets/paint.jpg";
+import hero from "@/assets/Leon.png";
+import raw from "@/assets/Subaru.png";
+import paint from "@/assets/Power.png";
 import type { PaintLevel } from "@/lib/pricing";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Figures 3D sob encomenda com preço na hora" },
+      { title: "GAF33" },
       { name: "description", content: "Figures de personagens impressas em resina 3D, com estimativa de preço pela altura." },
       { property: "og:title", content: "Figures 3D sob encomenda" },
       { property: "og:description", content: "Impressão 3D em resina com pintura simples ou detalhada e estimativa de preço." },
@@ -25,7 +25,12 @@ function Quote() {
   const fn = useServerFn(getResinMetrics);
   const [height, setHeight] = useState(20);
   const [pnt, setPnt] = useState<PaintLevel>("simple");
-  const [price, setPrice] = useState<number | null>(null);
+  const [result, setResult] = useState<{
+    price: number;
+    resinPrice: {
+      pricePerLiter: number;
+    };
+  } | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -33,7 +38,7 @@ function Quote() {
       setLoading(true);
       try {
         const r = await fn({ data: { heightCm: height, paint: pnt } });
-        setPrice(r.price);
+        setResult({ price: r.price, resinPrice: r.resinPrice });
       } finally {
         setLoading(false);
       }
@@ -46,6 +51,12 @@ function Quote() {
     { k: "simple", t: "Pintura simples" },
     { k: "detailed", t: "Pintura detalhada" },
   ];
+  const selectedPaint = paints.find((option) => option.k === pnt)?.t ?? "Pintura simples";
+  const emailSubject = encodeURIComponent("Pedido de orçamento - Figure 3D");
+  const emailBody = encodeURIComponent(
+    `Olá! Gostaria de solicitar um orçamento para uma figure 3D.\n\nAltura: ${height} cm\nAcabamento: ${selectedPaint}\nEstimativa no site: ${result === null ? "indisponível" : brl(result.price)}\n\nPersonagem/referências:\n`,
+  );
+  const quoteEmailHref = `mailto:gaf33c@gmail.com?subject=${emailSubject}&body=${emailBody}`;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
@@ -70,10 +81,17 @@ function Quote() {
       <aside className="h-fit rounded-xl border border-primary/40 bg-card p-6 shadow-glow lg:sticky lg:top-24">
         <div className="rounded-lg bg-fire p-5 text-primary-foreground">
           <p className="text-xs font-bold uppercase tracking-widest">Preço médio estimado</p>
-          <p className={`font-display text-5xl transition-opacity ${loading ? "opacity-60" : ""}`}>{price === null ? "—" : brl(price)}</p>
+          <p className={`font-display text-5xl transition-opacity ${loading ? "opacity-60" : ""}`}>
+            {result === null ? "—" : brl(result.price)}
+          </p>
         </div>
-        <p className="mt-4 text-sm text-muted-foreground">Valor aproximado. O preço final é confirmado no orçamento, conforme o personagem.</p>
-        <a href="#contato" className="mt-4 block rounded-md border border-border px-4 py-3 text-center font-bold hover:border-primary">Pedir orçamento</a>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Resina usada como base: {result === null ? "carregando..." : `${brl(result.resinPrice.pricePerLiter)}/L`}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Preço estimado; o valor oficial é definido no orçamento.
+        </p>
+        <a href={quoteEmailHref} className="mt-4 block rounded-md border border-border px-4 py-3 text-center font-bold hover:border-primary">Pedir orçamento</a>
       </aside>
     </div>
   );
@@ -115,7 +133,14 @@ function Index() {
               [hero, "Peça finalizada", "Pronta para a estante."],
             ].map(([img, t, d]) => (
               <figure key={t} className="overflow-hidden rounded-xl border border-border bg-card">
-                <img src={img} alt={t} loading="lazy" width={1024} height={1024} className="aspect-square w-full object-cover" />
+                <img
+                  src={img}
+                  alt={t}
+                  loading="lazy"
+                  width={1024}
+                  height={1024}
+                  className={`aspect-square w-full object-cover ${img === paint ? "object-top scale-[1.03] -translate-x-1 -translate-y-0.5" : ""}`}
+                />
                 <figcaption className="p-5"><h3 className="text-2xl">{t}</h3><p className="text-sm text-muted-foreground">{d}</p></figcaption>
               </figure>
             ))}
